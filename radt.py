@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def column_names():
-    '''Get all column data from relative activity results table produced by R code for HTML use'''
+    #Get all column data from relative activity results table produced by R code for HTML use
     df = pd.read_csv('relative.csv', index_col=0)
 
     column_names = []
@@ -15,7 +15,7 @@ def column_names():
 
 
 def row_names():
-    '''Get all row data from relative activity results table produced by R code for HTML use'''
+    #Get all row data from relative activity results table produced by R code for HTML use
 
     df = pd.read_csv('relative.csv', index_col=0)
 
