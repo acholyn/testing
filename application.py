@@ -33,6 +33,7 @@ def create_app():
     Bootstrap(application)
     FontAwesome(application)
     application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 1
+    application.config['SECRET_KEY'] = 'change this unsecure key' #need this for search
 
     return application
 
