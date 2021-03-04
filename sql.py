@@ -53,10 +53,10 @@ df3= df3.rename(columns={'UniProt ID(supplied by UniProt)':'Uniprot'}, inplace =
 df3.to_csv("htfUniprot.tsv", sep="\t", index=False)
 
 ####create an empty database
-open("tranfac.db", "w").close()  
+open("transfacts.db", "w").close()  
 
-#open the tranfac database
-db = SQL("sqlite:///tranfac.db") 
+#open the transfacts database
+db = SQL("sqlite:///transfacts.db") 
 
 # Create table
 db.execute("CREATE TABLE HtfUniprot (Uniprot TEXT NON NULL, Protein_name TEXT NOT NULL, Symbol TEXT NOT NULL, Family TEXT NON NULL, Chromosome TEXT NOT NULL, Ensembl TEXT NOT NULL, PRIMARY KEY (Symbol))")
