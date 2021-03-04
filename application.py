@@ -1,4 +1,4 @@
-#Import relevant packages
+#import packages
 from flask import Flask, render_template, url_for, redirect, request
 from flask_bootstrap import Bootstrap
 from flask_fontawesome import FontAwesome
@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 import RA
 import radt
 
-#extract all functions from R code
+# import R packages
 r = robjects.r
 r['source']('R-visuals.R')
 gseFUNC = robjects.globalenv['get_file_name']
@@ -22,24 +22,36 @@ gseFUNC = robjects.globalenv['get_file_name']
 raFUNC = robjects.globalenv['relative_activity']
 clearFUNC = robjects.globalenv['clear_env']
 # $env:FLASK_APP = "application.py"
+
 extract.get_important_data()
 
 
 # import sql ---> Uncomment if tranfac.db not present
 
-# create Flask application to allow for specific routes to be created. 
+
+# create a flask application object
+# def create_app():
+#     application = Flask(__name__)
+#     Bootstrap(app)
+#     FontAwesome(app)
+#     application.config['SECRET_KEY'] = 'change this unsecure key'
+
+#     return application
 def create_app():
     application = Flask(__name__)
     Bootstrap(application)
     FontAwesome(application)
+    application.config['SECRET_KEY'] = 'change this unsecure key' #need for search page
     application.config['SEND_FILE_MAX_AGE_DEFAULT'] = 1
-    application.config['SECRET_KEY'] = 'change this unsecure key' #need this for search
 
     return application
 
+
 application = create_app()
 
-#create Form class for user input in search page
+
+# we need to set a secret key attribute for secure forms
+
 class QueryForm(FlaskForm):
     submit = SubmitField()
 
@@ -55,16 +67,12 @@ def index():
 def search():
     form = QueryForm()
     htf_name = None
-    #once user submits input then send them to POST method. 
-    #Take account for lower case input
+
     if request.method == 'POST':
-        #identify what category the user selected
         category_type = request.form.get('category')
-        #if user selects transcription factor/gene category request their input and send them to tfprofile page
         if category_type == 'tf':
             htf_name = request.form.get('keywords')
             return redirect(url_for('tfprofile', htf_name=htf_name.upper()))
-        #if user selects drug category request their input and send them to drug page
         elif category_type == 'drug':
             drug_name = request.form.get('keywords')
             return redirect(url_for('drug', drug_name=drug_name.upper()))
@@ -74,11 +82,8 @@ def search():
 # define actions for tf profiles
 @application.route('/tfprofile/<htf_name>', methods=['GET', 'POST'])
 def tfprofile(htf_name):
-    
-    #get all existing human tf symbol data
     symbs = extract.get_symbols()
-    
-    #if user enters tf that is present from existing human tf symbol data extract relevant data and return html template for tfprofile with relevant data.
+
     if htf_name in symbs:
         db = SQL("sqlite:///transfacts.db")
 
@@ -87,7 +92,6 @@ def tfprofile(htf_name):
         user_inp = db.execute('''SELECT * FROM Htf_info WHERE Symbol = ?''', htf_name)
 
         u_i = db.execute('''SELECT * FROM Protein_info WHERE Symbol = ?''', htf_name)
-        #if data exists for drugs in transfacts.db then extract and return relevant information
         try:
 
             dict1_drugs = {}
@@ -95,14 +99,13 @@ def tfprofile(htf_name):
                 test_drug_name = user_inp[n]['drug_name']
                 test_drug_concept_id = user_inp[n]['drug_concept_id']
                 dict1_drugs[test_drug_concept_id] = test_drug_name
-        #if data doesn't exist for drugs in transfacts.db then extract and return 'None' for each data cell.
         except:
 
             dict1_drugs = {}
             test_drug_name = "None"
             test_drug_concept_id = "None"
             dict1_drugs[test_drug_concept_id] = test_drug_name
-        
+
         for num in range(len(user_inp)):
             ensembl = user_inp[num]['Ensembl']
             chr = user_inp[num]['Chromosome']
@@ -113,13 +116,13 @@ def tfprofile(htf_name):
             symbol = user_inp[num]['Symbol']
             family = user_inp[num]['Family']
             break
-        #get drug target information from hTF Target DB
+
         targets = target.get_htf_target_data(htf_name)
 
         return render_template('tfprofile.html', symbol=symbol, ensembl=ensembl, family=family, chr=chr,
                                full_name=full_name, uniprot=uniprot,
                                subcell=subcell, func=func, targets=targets, drug=dict1_drugs)
-    #send to error page if user inputs symbol which is not a human tf
+
     else:
         return redirect(url_for('error', htf_name=None))
 
@@ -139,37 +142,30 @@ def download():
 # define actions for GEO pages
 @application.route('/geo',methods=['GET','POST'])
 def geo():
-    #clear R environment
     clearFUNC()
-    #send site to POST method
     if request.method == 'POST':
-        #get file name
         f = request.files['file']
         f.save(secure_filename(f.filename))
-        #create heatmap(s)
         heatmap_create = gseFUNC(secure_filename(f.filename))
         #heatmap2_create = heatFUNC(secure_filename(f.filename))
-        #create gene expression data matrix and human transcription factor matrix for plsgenomic package in R
+
         a = RA.ge_data(secure_filename(f.filename))
         a.to_csv("ge_data.csv")
         b = RA.connec_data(a)
         b.to_csv('connec_data.csv')
         raFUNC()
 
-        #send user to geo data visualisations or relative activity results page
+
         return redirect(url_for('geo_results'))
     return render_template('GEO.html')
 
-#define actions for GEO relative activity results page
+#
 @application.route('/geo_results')
 def geo_results():
-    #extract column names and row items from relative activity csv file created by R
     colnames = radt.column_names()
     rownames = radt.row_names()
     return render_template('GEO-results.html',  colnames=colnames, rownames=rownames)
 
-
-#define actions for GEO data visualisations page
 @application.route('/geo_vis')
 def geo_vis():
 
@@ -180,10 +176,7 @@ def geo_vis():
 # define actions for drug profiles
 @application.route('/drugprofile/<drug_name>', methods=['GET', 'POST'])
 def drug(drug_name):
-    #get data from transfacts.db
     db = SQL("sqlite:///transfacts.db")
-    
-    #extract relevant information if found or catch error and return suitable information
     try:
 
         drug_data = db.execute('''SELECT * FROM drug_info WHERE drug_name  = ?''', drug_name)
@@ -209,14 +202,12 @@ def drug(drug_name):
 # define actions for browse page
 @application.route('/browse')
 def tfbrowse():
-    #get data from transfacts.db
-
     db = SQL("sqlite:///transfacts.db")
 
     tfs = db.execute('''SELECT * FROM browse_info''')
-    
-    #get protein name and gene symbol data from db and catch error
+
     try:
+
         dict1_tfs = {}
         for i in tfs:
             full_name = i['Protein_name']
