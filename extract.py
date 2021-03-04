@@ -136,7 +136,7 @@ def get_symbols():
 
     db = SQL("sqlite:///transfacts.db") 
 
-    symbol_data = db.execute(''' SELECT Symbol FROM HtfUniprot''')
+    symbol_data = db.execute(''' SELECT Symbol FROM Htfinfo''')
     symbol_list = []
     for x in symbol_data:
         symbol_list.append(x['Symbol'])
