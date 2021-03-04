@@ -134,7 +134,7 @@ def get_symbols():
     
     # get all current existing htf gene symbol data and make into a list
 
-    db = SQL("sqlite:///tranfac.db") 
+    db = SQL("sqlite:///transfacts.db") 
 
     symbol_data = db.execute(''' SELECT Symbol FROM HtfUniprot''')
     symbol_list = []
